@@ -4,7 +4,8 @@
   "description": "Mermaid-Diagramme als Excalidraw-Szene + PNG-Vorschau für deutschsprachige KI-Erklaervideos",
   "scripts": {
     "build": "esbuild src/browser-entry.js --bundle --outfile=build/converter.bundle.js --format=iife --loader:.woff2=dataurl --loader:.woff=dataurl --loader:.ttf=dataurl --define:process.env.NODE_ENV='\"production\"' --define:process.env.PREVIEW=false",
-    "generate": "node src/generate.mjs"
+    "generate": "node src/generate.mjs",
+    "web": "node src/web/server.mjs"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
     "@excalidraw/excalidraw": "^0.18.1",
     "@excalidraw/mermaid-to-excalidraw": "^2.2.2",
     "esbuild": "^0.28.2",
+    "express": "^4.21.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
