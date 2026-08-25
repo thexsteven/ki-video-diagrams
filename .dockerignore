@@ -1,0 +1,12 @@
+# Build-Kontext klein halten und keine host-spezifischen Artefakte ins Image
+# kopieren (native node_modules-Binaries, lokale Browser, Secrets).
+node_modules
+build
+output
+.git
+.env
+.env.local
+**/.venv
+**/__pycache__
+npm-debug.log*
+.DS_Store

@@ -172,6 +172,121 @@ gemacht wird**, braucht es zusätzlich: Authentifizierung, isolierte/sandboxed
 Ausführung pro Job (z.B. Container ohne Zugriff auf Secrets anderer Jobs) und
 eine eingeschränkte Tool-Liste statt Skip-Permissions.
 
+## Deployment (Hetzner/Docker)
+
+Für den Dauerbetrieb läuft die Web-UI als Docker-Container auf dem Server
+(apps-prod). Die Idee: der Dienst lauscht **nur auf dem Loopback des Hosts**
+(`127.0.0.1:5173`), und der Zugriff von unterwegs geht ausschließlich über
+**Tailscale** — nie über eine öffentliche Domain.
+
+> **Nie öffentlich routen.** Dieser Dienst darf **nicht** über Caddy oder eine
+> öffentliche Domain erreichbar gemacht werden. Der oben beschriebene
+> Sicherheitshinweis gilt unverändert: `--dangerously-skip-permissions`
+> bedeutet, dass jeder eingereichte Prompt beliebige Befehle im Container
+> ausführen kann. Zugriff darum ausschließlich über das private Tailscale-Netz.
+
+### Was im Repo liegt
+
+- `Dockerfile` — Node-LTS-Image mit Projekt-Dependencies, headless Chromium
+  (Node **und** Python/`uv` für den Skill-Renderer) und der `claude`-CLI. Läuft
+  als non-root User (nötig, damit `claude` `--dangerously-skip-permissions`
+  akzeptiert).
+- `docker-compose.yml` — Service-Block `ki-video-diagrams`. Port ist bewusst
+  nur auf `127.0.0.1:5173:5173` gemappt, `restart: unless-stopped`, benanntes
+  Volume `ki-video-output` für `output/`.
+- `.env.example` — Vorlage für die Secrets (`CLAUDE_CODE_OAUTH_TOKEN`, `PORT`).
+
+Im Container bindet der Server an `0.0.0.0` (über die Env-Var `HOST`), weil
+Dockers Port-Mapping das Loopback *innerhalb* des Containers nicht erreicht. Die
+Absicherung nach außen macht das Host-Mapping `127.0.0.1:...` — der Container
+selbst ist nur über dieses Loopback-Mapping erreichbar.
+
+### Voraussetzungen zur Laufzeit
+
+- Der Container braucht **ausgehendes Internet** (Claude-API sowie das
+  ESM-Modul, das der Skill-Renderer beim PNG-Erzeugen von `esm.sh` lädt).
+- Ein gültiger `CLAUDE_CODE_OAUTH_TOKEN` in der Server-`.env` (siehe
+  Schritt-für-Schritt unten).
+
+### Schritt für Schritt (Laptop + Server)
+
+Der Reihe nach abarbeiten:
+
+1. **Repo auf den Server holen.** Per SSH auf apps-prod einloggen und das Repo
+   an die gewünschte Stelle klonen (oder ein vorhandenes Checkout aktualisieren):
+
+   ```bash
+   git clone https://github.com/thexsteven/ki-video-diagrams.git
+   cd ki-video-diagrams
+   ```
+
+2. **`.env` anlegen.** Vorlage kopieren:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Claude-Token erzeugen und eintragen.** Auf dem Server (interaktiv, öffnet
+   einen Browser-Login-Flow):
+
+   ```bash
+   claude setup-token
+   ```
+
+   Den ausgegebenen Token als `CLAUDE_CODE_OAUTH_TOKEN=...` in die `.env`
+   eintragen. (Falls `claude` auf dem Server noch nicht installiert ist:
+   `npm install -g @anthropic-ai/claude-code`. Der Token wird im Container über
+   `env_file: .env` gelesen — im Container selbst musst du dich nicht einloggen.)
+
+4. **Tailscale auf dem Server installieren.** (Einmalig, als root/`sudo`.)
+
+   ```bash
+   curl -fsSL https://tailscale.com/install.sh | sh
+   sudo tailscale up
+   ```
+
+   `tailscale up` zeigt einen Login-Link — im Browser öffnen und mit deinem
+   Tailscale-Konto bestätigen. Danach ist der Server Teil deines privaten
+   Tailnet. Merke dir seinen Tailscale-Namen bzw. seine 100.x.y.z-Adresse
+   (`tailscale ip -4` oder `tailscale status`).
+
+5. **Container bauen und starten.** Im Repo-Verzeichnis:
+
+   ```bash
+   docker compose build
+   docker compose up -d
+   ```
+
+   Prüfen: `docker compose ps` (sollte `running` zeigen) und
+   `docker compose logs -f` (sollte `Web-UI läuft auf http://0.0.0.0:5173`
+   melden). Lokaler Test auf dem Server selbst:
+   `curl -I http://127.0.0.1:5173`.
+
+6. **Tailscale den Dienst servieren lassen.** So wird `127.0.0.1:5173` im
+   privaten Tailnet erreichbar — **ohne** es öffentlich zu machen:
+
+   ```bash
+   sudo tailscale serve --bg 5173
+   ```
+
+   `tailscale serve status` zeigt danach die interne HTTPS-URL
+   (`https://<server-name>.<dein-tailnet>.ts.net`). Wichtig: `serve` (privat,
+   nur im Tailnet) — **nicht** `funnel` (das wäre öffentlich).
+
+7. **Tailscale auf dem Handy einrichten.** Die Tailscale-App aus dem
+   App Store / Play Store installieren, mit **demselben** Tailscale-Konto
+   anmelden und Tailscale aktivieren (VPN-Toggle an). Das Handy ist dann im
+   selben privaten Tailnet wie der Server.
+
+8. **Vom Handy aus testen.** Bei aktivem Tailscale im Handy-Browser die
+   `serve`-URL aus Schritt 6 öffnen
+   (`https://<server-name>.<dein-tailnet>.ts.net`). Die Web-UI sollte
+   erscheinen — ein Testkonzept eingeben und prüfen, dass eine `.excalidraw`
+   (und eine PNG-Vorschau) erzeugt wird.
+
+Neue Version ausrollen später: `git pull` auf dem Server, dann
+`docker compose build && docker compose up -d`.
+
 ## Das erste Diagramm
 
 `diagrams/reason-act-observe.mmd` — der Agenten-Loop (Reason → Act → Observe →

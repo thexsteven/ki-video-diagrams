@@ -14,7 +14,10 @@ import { buildWizardPrompt } from "./promptTemplate.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PORT = Number(process.env.PORT) || 5173;
-const HOST = "127.0.0.1";
+// Lokal an localhost gebunden. Im Container muss auf 0.0.0.0 gebunden werden,
+// weil das Docker-Port-Mapping nicht das Loopback des Containers erreicht — die
+// Absicherung nach außen macht dort das Host-Mapping (nur 127.0.0.1), nie 0.0.0.0.
+const HOST = process.env.HOST || "127.0.0.1";
 
 const app = express();
 app.use(express.json());
