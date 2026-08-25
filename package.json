@@ -1,0 +1,30 @@
+{
+  "name": "ki-video-diagrams",
+  "version": "0.1.0",
+  "description": "Mermaid-Diagramme als Excalidraw-Szene + PNG-Vorschau für deutschsprachige KI-Erklaervideos",
+  "scripts": {
+    "build": "esbuild src/browser-entry.js --bundle --outfile=build/converter.bundle.js --format=iife --loader:.woff2=dataurl --loader:.woff=dataurl --loader:.ttf=dataurl --define:process.env.NODE_ENV='\"production\"' --define:process.env.PREVIEW=false",
+    "generate": "node src/generate.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thexsteven/ki-video-diagrams.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/thexsteven/ki-video-diagrams/issues"
+  },
+  "homepage": "https://github.com/thexsteven/ki-video-diagrams#readme",
+  "dependencies": {
+    "@excalidraw/excalidraw": "^0.18.1",
+    "@excalidraw/mermaid-to-excalidraw": "^2.2.2",
+    "esbuild": "^0.28.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  },
+  "private": false
+}
