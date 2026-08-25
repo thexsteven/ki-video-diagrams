@@ -1,0 +1,10 @@
+%% Der Agenten-Loop: Reason -> Act -> Observe -> zurueck zu Reason.
+%% Mit --layout circle werden die drei Knoten als echter Kreis angeordnet.
+flowchart LR
+    R["Reason<br/><br/>LLM entscheidet<br/>nächsten Schritt"]
+    A["Act<br/><br/>Tool wird<br/>ausgeführt"]
+    O["Observe<br/><br/>Ergebnis zurück<br/>ins Modell"]
+
+    R --> A
+    A --> O
+    O --> R
