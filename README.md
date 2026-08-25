@@ -102,6 +102,35 @@ docs/
   iterations.md     Qualitäts-Loop des ersten Diagramms
 ```
 
+## Skill: freie Diagramme ohne Mermaid
+
+Unter `.claude/skills/excalidraw-diagram/` liegt der Skill
+[coleam00/excalidraw-diagram-skill](https://github.com/coleam00/excalidraw-diagram-skill)
+(unverändert, Stand `8646fcc`). Er schreibt Excalidraw-JSON direkt von Hand,
+statt über Mermaid — dadurch sind Layouts möglich, die dagre nicht kann:
+Timelines, Fan-outs, Code-Snippets als „Evidence Artifacts", frei platzierter
+Text ohne Boxen.
+
+**Wann was:**
+
+| | `npm run generate` | Skill `excalidraw-diagram` |
+| --- | --- | --- |
+| Eingabe | `.mmd`-Datei | Beschreibung in Prosa |
+| Layout | mermaid/dagre + `--layout circle` | frei, von Hand platziert |
+| Gut für | Flows, Loops, alles Wiederholbare | einmalige, erklärende Video-Diagramme |
+| Reproduzierbar | ja, aus der `.mmd` | nein, das JSON ist das Original |
+
+Setup des Skill-Renderers (einmalig, **lokal** — braucht Internet):
+
+```bash
+cd .claude/skills/excalidraw-diagram/references
+uv sync
+uv run playwright install chromium
+```
+
+Farben an den Video-Look anpassen: `references/color-palette.md` ist die einzige
+Datei, die dafür geändert werden muss.
+
 ## Das erste Diagramm
 
 `diagrams/reason-act-observe.mmd` — der Agenten-Loop (Reason → Act → Observe →
