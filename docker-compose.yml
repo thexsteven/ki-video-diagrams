@@ -1,0 +1,33 @@
+# Service-Block für die ki-video-diagrams Web-UI.
+#
+# Kann so als eigenständige Compose-Datei laufen ODER der `services:`-Eintrag
+# in eine bestehende Compose-Struktur (z. B. apps-prod) übernommen werden.
+#
+# WICHTIG — dieser Dienst darf NIE öffentlich erreichbar sein:
+#   * Der Port wird bewusst nur auf 127.0.0.1 des Hosts gemappt, nie auf
+#     0.0.0.0 und nie ohne IP-Präfix ("5173:5173" wäre öffentlich!).
+#   * Kein Caddy / kein Reverse-Proxy / keine Domain davor.
+#   * Zugriff von außen ausschließlich über Tailscale (siehe README).
+# Grund: Die Web-UI startet claude mit --dangerously-skip-permissions, jeder
+# Prompt kann also beliebige Befehle im Container ausführen.
+
+services:
+  ki-video-diagrams:
+    build:
+      context: .
+    image: ki-video-diagrams
+    container_name: ki-video-diagrams
+    # Secrets (CLAUDE_CODE_OAUTH_TOKEN) und PORT aus der Server-.env.
+    env_file: .env
+    # Nur an das Loopback des Hosts binden — Tailscale serve greift genau hier
+    # ab. NIEMALS "5173:5173" oder "0.0.0.0:5173:5173" daraus machen.
+    ports:
+      - "127.0.0.1:5173:5173"
+    # Erzeugte Diagramme in einem benannten Volume, damit sie Neustarts
+    # überleben (die Web-UI liefert sie über die Download-Links aus).
+    volumes:
+      - ki-video-output:/app/output
+    restart: unless-stopped
+
+volumes:
+  ki-video-output:
