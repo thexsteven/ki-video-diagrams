@@ -1,0 +1,208 @@
+/* Mobile-first: Basis-Styles gelten für schmale Viewports, @media min-width
+   nutzt auf größeren Screens nur zusätzlichen Platz. */
+
+:root {
+  --bg: #0d1117;
+  --panel: #1f2937;
+  --text: #f0f6fc;
+  --muted: #9ca3af;
+  --accent: #7dd3fc;
+  --accent-strong: #38bdf8;
+  --error: #f87171;
+  --border: #30363d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 1.25rem;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem;
+}
+
+.lead {
+  color: var(--muted);
+  margin: 0 0 1.5rem;
+  font-size: 0.95rem;
+}
+
+code {
+  background: var(--panel);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tab {
+  flex: 1;
+  min-height: 44px;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.tab.active {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.panel.hidden {
+  display: none;
+}
+
+label,
+.label {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-top: 0.75rem;
+}
+
+input[type="text"],
+textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.75rem;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+input[type="text"]:focus,
+textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.chip-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.chip {
+  min-height: 44px;
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  border-radius: 999px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.chip.active {
+  color: var(--bg);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+button.primary,
+a.primary {
+  min-height: 48px;
+  margin-top: 1.25rem;
+  padding: 0.85rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent-strong);
+  color: #0d1117;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  display: block;
+}
+
+button.secondary {
+  min-height: 44px;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+  width: 100%;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.status {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  margin: 1.5rem auto 1rem;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error-text {
+  color: var(--error);
+  white-space: pre-wrap;
+  text-align: left;
+}
+
+#result-png {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+@media (min-width: 700px) {
+  body {
+    padding: 3rem 1.5rem;
+  }
+
+  h1 {
+    font-size: 1.9rem;
+  }
+}

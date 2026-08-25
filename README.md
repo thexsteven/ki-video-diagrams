@@ -98,6 +98,7 @@ src/
   browser-entry.js  läuft im Browser: mermaid -> Excalidraw-Elemente
   layout.mjs        Kreis-Layout für zyklische Diagramme
   themes.mjs        Farbschemata (dark/light)
+  web/              Web-UI: Prompt bauen -> claude-CLI ausführen -> Ergebnis anzeigen
 docs/
   iterations.md     Qualitäts-Loop des ersten Diagramms
 ```
@@ -130,6 +131,46 @@ uv run playwright install chromium
 
 Farben an den Video-Look anpassen: `references/color-palette.md` ist die einzige
 Datei, die dafür geändert werden muss.
+
+## Web-UI: Diagramme per Browser erzeugen
+
+Statt den Skill manuell in einer Claude-Code-Session anzustoßen, gibt es unter
+`src/web/` eine kleine, mobile-taugliche Weboberfläche. Man beschreibt dort
+sein Konzept — frei formuliert oder über einen festen Fragen-Dialog (Thema,
+Zielgruppe, Tiefe, Kernkomponenten) — die Seite baut daraus einen Prompt, und
+im Hintergrund läuft eine `claude`-CLI-Session, die den Skill
+`excalidraw-diagram` ausführt (inkl. dessen Render-View-Fix-Loop). Am Ende gibt
+es eine PNG-Vorschau und einen Download-Link für die `.excalidraw`.
+
+**Das Tool ersetzt Excalidraw nicht** — es liefert nur die Ausgangsdatei. Die
+Feinarbeit (Positionen, Farben, Text verschieben) passiert danach ganz normal
+in Excalidraw selbst.
+
+### Starten
+
+```bash
+npm run web
+```
+
+Voraussetzungen:
+- `.claude/skills/excalidraw-diagram/references` muss einmalig eingerichtet
+  sein (siehe oben, `uv sync` + `uv run playwright install chromium`).
+- Die `claude`-CLI muss im `PATH` verfügbar und bereits authentifiziert sein.
+
+Der Server läuft dann unter `http://127.0.0.1:5173` (Port über `PORT`
+änderbar).
+
+### Sicherheitshinweis — nur lokal, nicht öffentlich hosten
+
+Der Server bindet bewusst nur an `127.0.0.1` und startet `claude` mit
+`--dangerously-skip-permissions`, damit die Web-Session ohne manuelles
+Freigeben im Terminal durchläuft. Das ist nur vertretbar, solange ausschließlich
+der Betreiber selbst Zugriff hat: Skip-Permissions bedeutet, dass jeder
+eingereichte Prompt Claude Code dazu bringen kann, beliebige Bash-Befehle auf
+dem Server auszuführen. **Bevor diese Oberfläche für andere Personen erreichbar
+gemacht wird**, braucht es zusätzlich: Authentifizierung, isolierte/sandboxed
+Ausführung pro Job (z.B. Container ohne Zugriff auf Secrets anderer Jobs) und
+eine eingeschränkte Tool-Liste statt Skip-Permissions.
 
 ## Das erste Diagramm
 
