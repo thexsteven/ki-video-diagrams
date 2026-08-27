@@ -2,9 +2,8 @@
 #
 # Enthält alles, was die Oberfläche zum Erzeugen von Diagrammen braucht:
 #   - Node + die Projekt-Dependencies (npm ci)
-#   - headless Chromium samt System-Libs (Node-Playwright)
-#   - Python + uv + ein zweites Chromium für den excalidraw-diagram-Skill
-#     (dessen render-view-fix-Loop rendert PNGs über uv/Playwright)
+#   - Python + uv + Chromium für den excalidraw-diagram-Skill (dessen
+#     render-view-fix-Loop rendert PNGs über uv/Playwright)
 #   - die claude-CLI, die die Web-UI im Hintergrund aufruft
 #
 # Läuft bewusst als non-root User: die claude-CLI verweigert
@@ -13,8 +12,8 @@
 
 FROM node:22-bookworm
 
-# Beide Playwright-Installationen (Node + Python/uv) teilen sich diesen Pfad,
-# damit der non-root User zur Laufzeit die Browser findet.
+# Playwright-Installation des Skill-Renderers teilt sich diesen Pfad, damit
+# der non-root User zur Laufzeit den Browser findet.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # uv (Python-Paketmanager, den der Skill-Renderer nutzt) aus dem offiziellen Image.
@@ -37,23 +36,18 @@ RUN useradd --create-home --shell /bin/bash app \
 WORKDIR /app
 
 # Erst nur die Manifeste kopieren -> npm-ci-Layer wird gecacht, solange sie
-# sich nicht ändern. devDependencies (Playwright, esbuild) werden gebraucht.
+# sich nicht ändern.
 COPY package.json package-lock.json ./
-RUN npm ci
-
-# Chromium + alle nötigen System-Libs (braucht root für apt).
-RUN npx playwright install --with-deps chromium
+RUN npm ci --omit=dev
 
 # Restliche Quellen.
 COPY . .
 
-# Browser-Bundle für den `npm run generate`-Pfad (Mermaid -> Excalidraw).
-RUN npm run build
-
-# Skill-Renderer einrichten: Python-venv + eigenes Chromium (gleicher Pfad).
+# Skill-Renderer einrichten: Python-venv + Chromium samt System-Libs
+# (--with-deps braucht root für apt, deshalb noch vor USER app).
 RUN cd .claude/skills/excalidraw-diagram/references \
  && uv sync \
- && uv run playwright install chromium
+ && uv run playwright install --with-deps chromium
 
 # Alles dem non-root User übereignen (npm ci / uv sync liefen als root).
 RUN chown -R app:app /app /ms-playwright

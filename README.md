@@ -1,125 +1,65 @@
 # ki-video-diagrams
 
-Erzeugt aus einer Mermaid-Datei ein sauberes **Excalidraw-Diagramm** im
-Whiteboard-Stil — als importierbare `.excalidraw`-Datei plus PNG-Vorschau.
-Gebaut für die Diagramme in meinen deutschsprachigen KI-Erklärvideos: dunkles
-Theme, große Schrift, gut lesbar auch als kleines Overlay im Screen-Recording.
+Wizard-Web-UI: Thema eintragen, ein paar Fragen beantworten — im Hintergrund
+läuft eine Claude-Code-Session, die den Skill `excalidraw-diagram` ausführt
+und daraus ein sauberes **Excalidraw-Diagramm** im Whiteboard-Stil baut, als
+importierbare `.excalidraw`-Datei plus PNG-Vorschau. Gebaut für die Diagramme
+in deutschsprachigen KI-Erklärvideos: dunkles Theme, große Schrift, gut
+lesbar auch als kleines Overlay im Screen-Recording.
 
-Für ein neues Video kommt eine neue `.mmd`-Datei in `diagrams/` — der Rest ist
-ein Kommando.
+Die Web-UI ist für zwei Personen gedacht (Betreiber + eine weitere, nicht
+technisch versierte Person) und öffentlich über eine eigene Domain hinter
+einem gemeinsamen Passwort erreichbar — siehe Abschnitt
+["Sicherheit"](#sicherheit), bevor du das selbst deployst.
 
 📄 Doku-Schicht (Entscheidungen, Kurzfassung) liegt in Google Drive unter
 `AIOS/privat/projekte/ki-video-diagrams/`:
 <https://drive.google.com/drive/folders/1UArFQZzbYwhXwM41zNllgxq0YAth_JWZ>
 
-![Der Agenten-Loop](output/reason-act-observe.png)
-
 ## Setup
 
 ```bash
 npm install
-npx playwright install chromium   # einmalig
-npm run build                     # Browser-Bundle bauen
 ```
 
-Der Build-Schritt ist nötig, weil `@excalidraw/mermaid-to-excalidraw` für die
-Layout-Berechnung mermaid.js und damit ein echtes DOM braucht. Das Tool startet
-deshalb ein headless Chromium (Playwright), lässt die Konvertierung dort laufen
-und holt Elemente und PNG wieder heraus.
+Zusätzlich einmalig den Renderer des Skills einrichten (siehe
+["Diagramm-Skill: Setup"](#diagramm-skill-setup) unten) — ohne den kann der
+Skill keine PNG-Vorschau erzeugen.
 
-## Ein Diagramm erzeugen
+## Web-UI starten
 
 ```bash
-npm run generate -- --input diagrams/reason-act-observe.mmd \
-                    --out output/reason-act-observe \
-                    --layout circle
+npm run web
 ```
 
-Ergebnis: `output/reason-act-observe.excalidraw` (auf
-[excalidraw.com](https://excalidraw.com) per *Datei → Öffnen* importierbar) und
-`output/reason-act-observe.png`.
+Voraussetzungen:
+- Skill-Renderer eingerichtet (siehe unten).
+- Die `claude`-CLI im `PATH`, authentifiziert (`claude setup-token` oder
+  bestehender Login).
+- `.env` mit `APP_PASSWORD` und `SESSION_SECRET` (siehe `.env.example`) —
+  ohne diese beiden startet der Server nicht.
 
-### Optionen
+Der Server läuft dann unter `http://127.0.0.1:5173` (Port über `PORT`
+änderbar). Im Browser zuerst der Login (Passwort aus `APP_PASSWORD`), danach
+der Fragen-Dialog: Thema, für wen das Bild ist, wie detailliert, was
+vorkommen soll. Am Ende gibt es eine PNG-Vorschau und einen Download-Link für
+die `.excalidraw`.
 
-| Option | Default | Bedeutung |
-| --- | --- | --- |
-| `--input` | – | Pfad zur `.mmd`-Datei (Pflicht) |
-| `--out` | – | Ausgabepfad **ohne** Endung (Pflicht) |
-| `--layout` | `mermaid` | `mermaid` = dagre-Layout, `circle` = Knoten als Kreis |
-| `--theme` | `dark` | `dark` oder `light` |
-| `--scale` | `2` | PNG-Auflösung (2 = retina) |
-| `--font-size` | `22` | Schriftgröße, an mermaid durchgereicht |
-| `--padding` | `40` | Rand um das PNG |
-| `--bow` | `0.14` | Wie stark sich die Kreis-Pfeile nach außen wölben |
+**Das Tool ersetzt Excalidraw nicht** — es liefert nur die Ausgangsdatei. Die
+Feinarbeit (Positionen, Farben, Text verschieben) passiert danach ganz normal
+auf [excalidraw.com](https://excalidraw.com).
 
-`CHROMIUM_PATH=/pfad/zu/chrome` nutzt ein bereits vorhandenes Chromium, statt
-das von Playwright installierte zu suchen (praktisch in Containern/CI).
+## Diagramm-Skill: Setup
 
-## Für ein neues Video
-
-1. Neue Datei in `diagrams/` anlegen, z.B. `diagrams/rag-pipeline.mmd`:
-
-   ```mermaid
-   flowchart LR
-       A["Frage<br/><br/>Nutzer-Eingabe"]
-       B["Retrieval<br/><br/>Passende Chunks<br/>aus dem Index"]
-       C["Antwort<br/><br/>LLM formuliert<br/>mit Kontext"]
-
-       A --> B
-       B --> C
-   ```
-
-2. Erzeugen:
-
-   ```bash
-   npm run generate -- --input diagrams/rag-pipeline.mmd --out output/rag-pipeline
-   ```
-
-3. PNG anschauen, bei Bedarf `.excalidraw` in excalidraw.com öffnen und von Hand
-   nachjustieren.
-
-### Konventionen, die sich bewährt haben
-
-- **Schlagwort, Leerzeile, Beschreibung:** `"Act<br/><br/>Tool wird<br/>ausgeführt"`.
-  Die Leerzeile lässt die Kopfzeile beim schnellen Überfliegen heraussstechen —
-  wichtig, wenn das Diagramm im Video nur ein Viertel des Bildes einnimmt.
-- **Zeilen selbst umbrechen** mit `<br/>`, statt lange Labels automatisch
-  umbrechen zu lassen. Ergibt gleichmäßigere Knoten.
-- **Zyklen immer mit `--layout circle`.** Mermaid/dagre layoutet hierarchisch
-  und macht aus einem Loop sonst eine Reihe mit langem Rückpfeil.
-
-## Aufbau
-
-```
-diagrams/   Mermaid-Quelldateien (eine pro Diagramm)
-output/     erzeugte .excalidraw- und .png-Dateien
-src/
-  generate.mjs      CLI: Argumente, Playwright, Dateien schreiben
-  browser-entry.js  läuft im Browser: mermaid -> Excalidraw-Elemente
-  layout.mjs        Kreis-Layout für zyklische Diagramme
-  themes.mjs        Farbschemata (dark/light)
-  web/              Web-UI: Prompt bauen -> claude-CLI ausführen -> Ergebnis anzeigen
-docs/
-  iterations.md     Qualitäts-Loop des ersten Diagramms
-```
-
-## Skill: freie Diagramme ohne Mermaid
-
-Unter `.claude/skills/excalidraw-diagram/` liegt der Skill
-[coleam00/excalidraw-diagram-skill](https://github.com/coleam00/excalidraw-diagram-skill)
-(unverändert, Stand `8646fcc`). Er schreibt Excalidraw-JSON direkt von Hand,
-statt über Mermaid — dadurch sind Layouts möglich, die dagre nicht kann:
-Timelines, Fan-outs, Code-Snippets als „Evidence Artifacts", frei platzierter
-Text ohne Boxen.
-
-**Wann was:**
-
-| | `npm run generate` | Skill `excalidraw-diagram` |
-| --- | --- | --- |
-| Eingabe | `.mmd`-Datei | Beschreibung in Prosa |
-| Layout | mermaid/dagre + `--layout circle` | frei, von Hand platziert |
-| Gut für | Flows, Loops, alles Wiederholbare | einmalige, erklärende Video-Diagramme |
-| Reproduzierbar | ja, aus der `.mmd` | nein, das JSON ist das Original |
+Das Tool nutzt ausschließlich den Skill unter
+`.claude/skills/excalidraw-diagram/` — den unveränderten
+[coleam00/excalidraw-diagram-skill](https://github.com/coleam00/excalidraw-diagram-skill).
+Er schreibt Excalidraw-JSON direkt von Hand (kein Mermaid/dagre-Layout
+dazwischen), dadurch sind Layouts möglich, die ein automatisches Flowchart-
+Layout nicht kann: Timelines, Fan-outs, Code-Snippets als „Evidence
+Artifacts", frei platzierter Text ohne Boxen. Der Skill hat einen
+eingebauten Render-View-Fix-Loop: erzeugtes JSON wird gerendert, das PNG
+angeschaut, Fehler korrigiert — mehrere Runden, bis das Ergebnis stimmt.
 
 Setup des Skill-Renderers (einmalig, **lokal** — braucht Internet):
 
@@ -129,170 +69,151 @@ uv sync
 uv run playwright install chromium
 ```
 
-Farben an den Video-Look anpassen: `references/color-palette.md` ist die einzige
-Datei, die dafür geändert werden muss.
+Farben an den Video-Look anpassen: `references/color-palette.md` ist die
+einzige Datei, die dafür geändert werden muss.
 
-## Web-UI: Diagramme per Browser erzeugen
+## Sicherheit
 
-Statt den Skill manuell in einer Claude-Code-Session anzustoßen, gibt es unter
-`src/web/` eine kleine, mobile-taugliche Weboberfläche. Man beschreibt dort
-sein Konzept — frei formuliert oder über einen festen Fragen-Dialog (Thema,
-Zielgruppe, Tiefe, Kernkomponenten) — die Seite baut daraus einen Prompt, und
-im Hintergrund läuft eine `claude`-CLI-Session, die den Skill
-`excalidraw-diagram` ausführt (inkl. dessen Render-View-Fix-Loop). Am Ende gibt
-es eine PNG-Vorschau und einen Download-Link für die `.excalidraw`.
+**Wichtig, bevor du das öffentlich deployst.** Die Web-UI startet
+`claude -p ... --dangerously-skip-permissions` — jeder Prompt, der durchs
+gemeinsame Passwort kommt, kann beliebige Shell-Befehle im Container
+ausführen (Dateien lesen/schreiben, mit dem Netzwerk-Zugriff des Containers
+nach außen reden, alles tun, was der `app`-User darf). Es gibt bewusst kein
+Sandboxing pro Auftrag — das ist für zwei vertraute Nutzer als Risiko
+akzeptiert, aber sei dir bewusst: **ein geratenes oder geleaktes Passwort ist
+gleichbedeutend mit vollem Zugriff auf den Container**, nicht nur auf ein
+Diagramm-Tool.
 
-**Das Tool ersetzt Excalidraw nicht** — es liefert nur die Ausgangsdatei. Die
-Feinarbeit (Positionen, Farben, Text verschieben) passiert danach ganz normal
-in Excalidraw selbst.
+Mitigationen, die tatsächlich umgesetzt sind:
 
-### Starten
+1. **Rate-Limiting auf dem Login** (`src/auth.mjs`) — 5 Versuche pro 15
+   Minuten und IP, danach Sperre. Macht Brute-Force unpraktikabel.
+2. **Starkes, einzigartiges `APP_PASSWORD`** — generieren mit z. B.
+   `openssl rand -base64 24`, nirgendwo sonst wiederverwenden. Wer es hat,
+   hat vollen Zugriff — entsprechend behandeln.
+3. **Container läuft als non-root** — ohnehin technisch nötig, weil
+   `--dangerously-skip-permissions` als root außerhalb einer erkannten
+   Sandbox verweigert wird.
+4. **Minimale Secrets im Container:** nur `CLAUDE_CODE_OAUTH_TOKEN`,
+   `APP_PASSWORD`, `SESSION_SECRET`, `PORT`. Keine weiteren Zugangsdaten,
+   SSH-Keys o. Ä. in `.env` legen.
+5. **Loopback-Bindung + Caddy davor** (siehe Deployment unten) — der
+   Container ist nie direkt aus dem Internet erreichbar, nur über Caddys
+   TLS-Terminierung.
 
-```bash
-npm run web
+Explizit **nicht** vorgesehen: Sandboxing/Isolation pro Auftrag,
+IP-Allowlisting (würde die Nutzung von unterwegs verhindern), Abschalten von
+`--dangerously-skip-permissions` (würde den kompletten Flow brechen).
+
+## Aufbau
+
+```
+.claude/skills/excalidraw-diagram/   Skill (unverändert) + Renderer/Setup
+output/web/{id}/                     erzeugte .excalidraw, .png, log.txt pro Auftrag
+src/
+  server.mjs          Express-Entrypoint, Routing, Static-Serving
+  auth.mjs             Login/Session/Rate-Limiting
+  jobs.mjs             In-Memory-Job-Queue (ein Auftrag gleichzeitig)
+  promptTemplate.mjs   baut den Prompt aus den Wizard-Antworten
+  public/
+    login.html          Login-Seite
+    index.html            Fragen-Dialog
+    app.js
+    style.css
 ```
 
-Voraussetzungen:
-- `.claude/skills/excalidraw-diagram/references` muss einmalig eingerichtet
-  sein (siehe oben, `uv sync` + `uv run playwright install chromium`).
-- Die `claude`-CLI muss im `PATH` verfügbar und bereits authentifiziert sein.
-
-Der Server läuft dann unter `http://127.0.0.1:5173` (Port über `PORT`
-änderbar).
-
-### Sicherheitshinweis — nur lokal, nicht öffentlich hosten
-
-Der Server bindet bewusst nur an `127.0.0.1` und startet `claude` mit
-`--dangerously-skip-permissions`, damit die Web-Session ohne manuelles
-Freigeben im Terminal durchläuft. Das ist nur vertretbar, solange ausschließlich
-der Betreiber selbst Zugriff hat: Skip-Permissions bedeutet, dass jeder
-eingereichte Prompt Claude Code dazu bringen kann, beliebige Bash-Befehle auf
-dem Server auszuführen. **Bevor diese Oberfläche für andere Personen erreichbar
-gemacht wird**, braucht es zusätzlich: Authentifizierung, isolierte/sandboxed
-Ausführung pro Job (z.B. Container ohne Zugriff auf Secrets anderer Jobs) und
-eine eingeschränkte Tool-Liste statt Skip-Permissions.
-
-## Deployment (Hetzner/Docker)
+## Deployment (Hetzner/Docker + Caddy)
 
 Für den Dauerbetrieb läuft die Web-UI als Docker-Container auf dem Server
-(apps-prod). Die Idee: der Dienst lauscht **nur auf dem Loopback des Hosts**
-(`127.0.0.1:5173`), und der Zugriff von unterwegs geht ausschließlich über
-**Tailscale** — nie über eine öffentliche Domain.
-
-> **Nie öffentlich routen.** Dieser Dienst darf **nicht** über Caddy oder eine
-> öffentliche Domain erreichbar gemacht werden. Der oben beschriebene
-> Sicherheitshinweis gilt unverändert: `--dangerously-skip-permissions`
-> bedeutet, dass jeder eingereichte Prompt beliebige Befehle im Container
-> ausführen kann. Zugriff darum ausschließlich über das private Tailscale-Netz.
+(apps-prod). Der Container bindet **nur** an `127.0.0.1` des Hosts; die
+öffentliche Erreichbarkeit übernimmt Caddy, das TLS auf der echten Domain
+terminiert und auf `127.0.0.1:5173` weiterleitet — der Container selbst ist
+nie direkt aus dem Internet erreichbar.
 
 ### Was im Repo liegt
 
-- `Dockerfile` — Node-LTS-Image mit Projekt-Dependencies, headless Chromium
-  (Node **und** Python/`uv` für den Skill-Renderer) und der `claude`-CLI. Läuft
-  als non-root User (nötig, damit `claude` `--dangerously-skip-permissions`
-  akzeptiert).
-- `docker-compose.yml` — Service-Block `ki-video-diagrams`. Port ist bewusst
-  nur auf `127.0.0.1:5173:5173` gemappt, `restart: unless-stopped`, benanntes
-  Volume `ki-video-output` für `output/`.
-- `.env.example` — Vorlage für die Secrets (`CLAUDE_CODE_OAUTH_TOKEN`, `PORT`).
+- `Dockerfile` — Node-LTS-Image mit Projekt-Dependencies, Python/`uv` +
+  Chromium für den Skill-Renderer und der `claude`-CLI. Läuft als non-root
+  User (nötig, damit `claude` `--dangerously-skip-permissions` akzeptiert).
+- `docker-compose.yml` — Service-Block `ki-video-diagrams`. Port nur auf
+  `127.0.0.1:5173:5173` gemappt, `restart: unless-stopped`, benanntes Volume
+  `ki-video-output` für `output/`.
+- `.env.example` — Vorlage für die Secrets (`CLAUDE_CODE_OAUTH_TOKEN`,
+  `APP_PASSWORD`, `SESSION_SECRET`, `PORT`).
 
 Im Container bindet der Server an `0.0.0.0` (über die Env-Var `HOST`), weil
-Dockers Port-Mapping das Loopback *innerhalb* des Containers nicht erreicht. Die
-Absicherung nach außen macht das Host-Mapping `127.0.0.1:...` — der Container
-selbst ist nur über dieses Loopback-Mapping erreichbar.
+Dockers Port-Mapping das Loopback *innerhalb* des Containers nicht erreicht.
+Die Absicherung nach außen macht das Host-Mapping `127.0.0.1:...` plus Caddy
+davor.
 
 ### Voraussetzungen zur Laufzeit
 
 - Der Container braucht **ausgehendes Internet** (Claude-API sowie das
   ESM-Modul, das der Skill-Renderer beim PNG-Erzeugen von `esm.sh` lädt).
-- Ein gültiger `CLAUDE_CODE_OAUTH_TOKEN` in der Server-`.env` (siehe
-  Schritt-für-Schritt unten).
+- Ein gültiger `CLAUDE_CODE_OAUTH_TOKEN`, ein starkes `APP_PASSWORD` und ein
+  zufälliges `SESSION_SECRET` in der Server-`.env`.
+- Eine Domain (bzw. Subdomain), deren DNS-Eintrag auf den Server zeigt, und
+  ein laufender Caddy auf dem Host bzw. im `apps-prod`-Stack.
 
 ### Schritt für Schritt (Laptop + Server)
 
-Der Reihe nach abarbeiten:
-
-1. **Repo auf den Server holen.** Per SSH auf apps-prod einloggen und das Repo
-   an die gewünschte Stelle klonen (oder ein vorhandenes Checkout aktualisieren):
+1. **Repo auf den Server holen.**
 
    ```bash
    git clone https://github.com/thexsteven/ki-video-diagrams.git
    cd ki-video-diagrams
    ```
 
-2. **`.env` anlegen.** Vorlage kopieren:
+2. **`.env` anlegen und ausfüllen.**
 
    ```bash
    cp .env.example .env
    ```
 
-3. **Claude-Token erzeugen und eintragen.** Auf dem Server (interaktiv, öffnet
-   einen Browser-Login-Flow):
+   `CLAUDE_CODE_OAUTH_TOKEN` per `claude setup-token` erzeugen (Browser-
+   Login-Flow, auf dem Server ausführen; `claude` ggf. vorher installieren:
+   `npm install -g @anthropic-ai/claude-code`). `APP_PASSWORD` und
+   `SESSION_SECRET` wie in `.env.example` beschrieben generieren.
 
-   ```bash
-   claude setup-token
-   ```
-
-   Den ausgegebenen Token als `CLAUDE_CODE_OAUTH_TOKEN=...` in die `.env`
-   eintragen. (Falls `claude` auf dem Server noch nicht installiert ist:
-   `npm install -g @anthropic-ai/claude-code`. Der Token wird im Container über
-   `env_file: .env` gelesen — im Container selbst musst du dich nicht einloggen.)
-
-4. **Tailscale auf dem Server installieren.** (Einmalig, als root/`sudo`.)
-
-   ```bash
-   curl -fsSL https://tailscale.com/install.sh | sh
-   sudo tailscale up
-   ```
-
-   `tailscale up` zeigt einen Login-Link — im Browser öffnen und mit deinem
-   Tailscale-Konto bestätigen. Danach ist der Server Teil deines privaten
-   Tailnet. Merke dir seinen Tailscale-Namen bzw. seine 100.x.y.z-Adresse
-   (`tailscale ip -4` oder `tailscale status`).
-
-5. **Container bauen und starten.** Im Repo-Verzeichnis:
+3. **Container bauen und starten.**
 
    ```bash
    docker compose build
    docker compose up -d
    ```
 
-   Prüfen: `docker compose ps` (sollte `running` zeigen) und
+   Prüfen: `docker compose ps` (sollte `running` zeigen),
    `docker compose logs -f` (sollte `Web-UI läuft auf http://0.0.0.0:5173`
-   melden). Lokaler Test auf dem Server selbst:
-   `curl -I http://127.0.0.1:5173`.
+   melden), lokaler Test auf dem Server: `curl -I http://127.0.0.1:5173`
+   (sollte auf `/login` umleiten).
 
-6. **Tailscale den Dienst servieren lassen.** So wird `127.0.0.1:5173` im
-   privaten Tailnet erreichbar — **ohne** es öffentlich zu machen:
+4. **DNS-Eintrag setzen.** Eine (Sub-)Domain per A/AAAA-Record auf die
+   Server-IP zeigen lassen.
 
-   ```bash
-   sudo tailscale serve --bg 5173
+5. **Caddy-Eintrag ergänzen.** In der Caddyfile des Hosts bzw. des
+   `apps-prod`-Stacks:
+
+   ```
+   deine-domain.tld {
+       reverse_proxy 127.0.0.1:5173
+   }
    ```
 
-   `tailscale serve status` zeigt danach die interne HTTPS-URL
-   (`https://<server-name>.<dein-tailnet>.ts.net`). Wichtig: `serve` (privat,
-   nur im Tailnet) — **nicht** `funnel` (das wäre öffentlich).
+   Caddy neu laden (`caddy reload` bzw. den entsprechenden
+   `docker compose`-Restart des Caddy-Dienstes im Stack).
 
-7. **Tailscale auf dem Handy einrichten.** Die Tailscale-App aus dem
-   App Store / Play Store installieren, mit **demselben** Tailscale-Konto
-   anmelden und Tailscale aktivieren (VPN-Toggle an). Das Handy ist dann im
-   selben privaten Tailnet wie der Server.
+6. **Von außen testen.**
 
-8. **Vom Handy aus testen.** Bei aktivem Tailscale im Handy-Browser die
-   `serve`-URL aus Schritt 6 öffnen
-   (`https://<server-name>.<dein-tailnet>.ts.net`). Die Web-UI sollte
-   erscheinen — ein Testkonzept eingeben und prüfen, dass eine `.excalidraw`
-   (und eine PNG-Vorschau) erzeugt wird.
+   ```bash
+   curl -I https://deine-domain.tld
+   ```
+
+   sollte `HTTP/2 302` auf `/login` zeigen. Im Browser die Domain öffnen,
+   mit `APP_PASSWORD` anmelden, ein Testthema eingeben und prüfen, dass eine
+   `.excalidraw` (und eine PNG-Vorschau) erzeugt wird.
 
 Neue Version ausrollen später: `git pull` auf dem Server, dann
 `docker compose build && docker compose up -d`.
-
-## Das erste Diagramm
-
-`diagrams/reason-act-observe.mmd` — der Agenten-Loop (Reason → Act → Observe →
-zurück zu Reason). Es entstand über sieben Runden aus generate → observe →
-critique → refine; was in welcher Runde warum geändert wurde, steht in
-[`docs/iterations.md`](docs/iterations.md).
 
 ## Lizenz
 

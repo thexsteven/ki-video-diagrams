@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KI-Video-Diagramme</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <div class="topbar">
+        <h1>Diagramm erstellen</h1>
+        <form method="post" action="/logout"><button type="submit" class="link">Abmelden</button></form>
+      </div>
+      <p class="lead">
+        Beschreib kurz, worum es geht — der Rest läuft automatisch. Am Ende bekommst
+        du ein fertiges Bild zum Ansehen und Herunterladen. Das dauert meist 1–2 Minuten.
+      </p>
+
+      <form id="wizard-form" class="panel">
+        <label for="w-topic">Worum geht's? *</label>
+        <input
+          id="w-topic"
+          name="topic"
+          type="text"
+          required
+          placeholder="z.B. Wie ein Sprachassistent eine Frage beantwortet"
+        />
+
+        <label for="w-audience">Für wen ist das Bild? (optional)</label>
+        <input id="w-audience" name="audience" type="text" placeholder="z.B. Zuschauer ohne Vorwissen" />
+
+        <span class="label">Wie detailliert?</span>
+        <div class="chip-group" data-name="depth">
+          <button type="button" class="chip active" data-value="einfach">Einfach erklärt</button>
+          <button type="button" class="chip" data-value="technisch">Mit technischen Details</button>
+        </div>
+        <input type="hidden" name="depth" value="einfach" />
+
+        <label for="w-components">Was soll im Bild vorkommen? (optional)</label>
+        <textarea
+          id="w-components"
+          name="components"
+          rows="4"
+          placeholder="z.B. Mikrofon, Spracherkennung, Antwort — einfach stichwortartig auflisten"
+        ></textarea>
+
+        <label for="w-patterns">Besondere Wünsche fürs Aussehen? (optional)</label>
+        <input id="w-patterns" name="patterns" type="text" placeholder="z.B. als Kreislauf, weil es sich wiederholt" />
+
+        <button type="submit" class="primary">Diagramm erstellen</button>
+      </form>
+
+      <section id="status" class="status hidden" aria-live="polite">
+        <div id="status-running" class="hidden">
+          <div class="spinner" aria-hidden="true"></div>
+          <p id="status-text">Dein Diagramm wird erstellt …</p>
+          <p class="lead">Das kann 1–2 Minuten dauern. Diese Seite bitte offen lassen.</p>
+        </div>
+
+        <div id="status-error" class="hidden">
+          <p class="lead">Leider ist etwas schiefgelaufen. Versuch es gerne nochmal.</p>
+          <details>
+            <summary>Technische Details</summary>
+            <p class="error-text" id="error-text"></p>
+          </details>
+          <button type="button" class="secondary" id="retry-button">Nochmal versuchen</button>
+        </div>
+
+        <div id="status-done" class="hidden">
+          <img id="result-png" alt="Erzeugtes Diagramm" />
+          <a id="download-link" class="primary download" download>Datei herunterladen (.excalidraw)</a>
+          <button type="button" class="secondary" id="new-button">Neues Diagramm erstellen</button>
+        </div>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>

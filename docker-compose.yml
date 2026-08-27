@@ -3,13 +3,17 @@
 # Kann so als eigenständige Compose-Datei laufen ODER der `services:`-Eintrag
 # in eine bestehende Compose-Struktur (z. B. apps-prod) übernommen werden.
 #
-# WICHTIG — dieser Dienst darf NIE öffentlich erreichbar sein:
-#   * Der Port wird bewusst nur auf 127.0.0.1 des Hosts gemappt, nie auf
-#     0.0.0.0 und nie ohne IP-Präfix ("5173:5173" wäre öffentlich!).
-#   * Kein Caddy / kein Reverse-Proxy / keine Domain davor.
-#   * Zugriff von außen ausschließlich über Tailscale (siehe README).
-# Grund: Die Web-UI startet claude mit --dangerously-skip-permissions, jeder
-# Prompt kann also beliebige Befehle im Container ausführen.
+# Öffentliche Erreichbarkeit läuft über Caddy, nicht über dieses Port-Mapping:
+#   * Der Container-Port bleibt bewusst nur auf 127.0.0.1 des Hosts gemappt
+#     (nie "5173:5173" oder "0.0.0.0:5173:5173" — der Container selbst ist
+#     also nie direkt aus dem Internet erreichbar).
+#   * Caddy läuft daneben (selber Host bzw. selber apps-prod-Stack), terminiert
+#     TLS auf der echten Domain und proxied auf 127.0.0.1:5173.
+# Grund für die Vorsicht: Die Web-UI startet claude mit
+# --dangerously-skip-permissions — jeder Prompt, der durchs Passwort (siehe
+# src/auth.mjs) kommt, kann beliebige Befehle im Container ausführen. Details
+# und Mitigationen (Rate-Limiting, starkes Passwort) siehe README, Abschnitt
+# "Sicherheit".
 
 services:
   ki-video-diagrams:
@@ -17,10 +21,11 @@ services:
       context: .
     image: ki-video-diagrams
     container_name: ki-video-diagrams
-    # Secrets (CLAUDE_CODE_OAUTH_TOKEN) und PORT aus der Server-.env.
+    # Secrets (CLAUDE_CODE_OAUTH_TOKEN, APP_PASSWORD, SESSION_SECRET) und
+    # PORT aus der Server-.env.
     env_file: .env
-    # Nur an das Loopback des Hosts binden — Tailscale serve greift genau hier
-    # ab. NIEMALS "5173:5173" oder "0.0.0.0:5173:5173" daraus machen.
+    # Nur an das Loopback des Hosts binden — Caddy proxied genau hierhin.
+    # NIEMALS "5173:5173" oder "0.0.0.0:5173:5173" daraus machen.
     ports:
       - "127.0.0.1:5173:5173"
     # Erzeugte Diagramme in einem benannten Volume, damit sie Neustarts

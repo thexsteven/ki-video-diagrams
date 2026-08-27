@@ -1,15 +1,4 @@
-const tabs = document.querySelectorAll(".tab");
-const panels = document.querySelectorAll(".panel");
-
-tabs.forEach((tab) => {
-  tab.addEventListener("click", () => {
-    tabs.forEach((t) => {
-      t.classList.toggle("active", t === tab);
-      t.setAttribute("aria-selected", t === tab ? "true" : "false");
-    });
-    panels.forEach((panel) => panel.classList.toggle("hidden", panel.dataset.panel !== tab.dataset.tab));
-  });
-});
+const wizardForm = document.getElementById("wizard-form");
 
 const chipGroup = document.querySelector('.chip-group[data-name="depth"]');
 const depthInput = document.querySelector('input[name="depth"]');
@@ -31,22 +20,19 @@ const downloadLink = document.getElementById("download-link");
 
 let pollTimer = null;
 
-function showForms() {
+function showForm() {
   clearInterval(pollTimer);
   statusSection.classList.add("hidden");
-  document.querySelector(".tabs").classList.remove("hidden");
-  const activeTab = document.querySelector(".tab.active").dataset.tab;
-  panels.forEach((panel) => panel.classList.toggle("hidden", panel.dataset.panel !== activeTab));
+  wizardForm.classList.remove("hidden");
 }
 
 function showRunning() {
-  document.querySelector(".tabs").classList.add("hidden");
-  panels.forEach((panel) => panel.classList.add("hidden"));
+  wizardForm.classList.add("hidden");
   statusSection.classList.remove("hidden");
   statusRunning.classList.remove("hidden");
   statusError.classList.add("hidden");
   statusDone.classList.add("hidden");
-  statusText.textContent = "Claude Code arbeitet …";
+  statusText.textContent = "Dein Diagramm wird erstellt …";
 }
 
 function showError(message) {
@@ -69,13 +55,13 @@ function showDone(files) {
   downloadLink.href = files.excalidraw;
 }
 
-async function submitJob(body) {
+async function submitJob(answers) {
   showRunning();
   try {
     const res = await fetch("/api/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ answers }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
@@ -106,21 +92,15 @@ async function pollJob(jobId) {
       clearInterval(pollTimer);
       showError(job.error || "Unbekannter Fehler.");
     } else {
-      statusText.textContent = job.status === "queued" ? "Job wartet in der Warteschlange …" : "Claude Code arbeitet …";
+      statusText.textContent =
+        job.status === "queued" ? "Dein Auftrag wartet kurz in der Warteschlange …" : "Dein Diagramm wird erstellt …";
     }
   } catch (err) {
     // Netzwerk-Hänger beim Polling: einfach beim nächsten Intervall erneut versuchen.
   }
 }
 
-document.getElementById("free-form").addEventListener("submit", (e) => {
-  e.preventDefault();
-  const prompt = document.getElementById("free-prompt").value.trim();
-  if (!prompt) return;
-  submitJob({ mode: "free", prompt });
-});
-
-document.getElementById("wizard-form").addEventListener("submit", (e) => {
+wizardForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const form = e.target;
   const answers = {
@@ -131,8 +111,8 @@ document.getElementById("wizard-form").addEventListener("submit", (e) => {
     patterns: form.patterns.value.trim(),
   };
   if (!answers.topic) return;
-  submitJob({ mode: "wizard", answers });
+  submitJob(answers);
 });
 
-document.getElementById("retry-button").addEventListener("click", showForms);
-document.getElementById("new-button").addEventListener("click", showForms);
+document.getElementById("retry-button").addEventListener("click", showForm);
+document.getElementById("new-button").addEventListener("click", showForm);
