@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Anmelden — KI-Video-Diagramme</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Willkommen</h1>
+      <p class="lead">Gib das Passwort ein, das du bekommen hast, um Diagramme zu erstellen.</p>
+
+      <form class="panel" method="post" action="/login">
+        <label for="password">Passwort</label>
+        <input id="password" name="password" type="password" required autofocus autocomplete="current-password" />
+        <p class="error-text hidden" id="login-error"></p>
+        <button type="submit" class="primary">Anmelden</button>
+      </form>
+    </main>
+    <script>
+      const reason = new URLSearchParams(location.search).get("error");
+      if (reason) {
+        const el = document.getElementById("login-error");
+        el.textContent =
+          reason === "ratelimit"
+            ? "Zu viele Versuche. Bitte warte 15 Minuten und versuch es dann erneut."
+            : "Das war nicht das richtige Passwort. Bitte nochmal versuchen.";
+        el.classList.remove("hidden");
+      }
+    </script>
+  </body>
+</html>

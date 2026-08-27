@@ -47,27 +47,33 @@ code {
   border-radius: 4px;
 }
 
-.tabs {
+.topbar {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
-.tab {
-  flex: 1;
+.link {
   min-height: 44px;
-  padding: 0.75rem;
-  border: 1px solid var(--border);
-  background: var(--panel);
+  padding: 0.5rem 0;
+  border: none;
+  background: none;
   color: var(--muted);
-  border-radius: 8px;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  text-decoration: underline;
   cursor: pointer;
 }
 
-.tab.active {
-  color: var(--text);
-  border-color: var(--accent);
+details {
+  margin-top: 0.75rem;
+  text-align: left;
+}
+
+details summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
 }
 
 .panel {
